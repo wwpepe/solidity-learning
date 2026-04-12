@@ -2,38 +2,84 @@ import hre from "hardhat";
 import { expect } from "chai";
 import { MyToken } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { Signature } from "ethers";
+import { parseUnits, Signature } from "ethers";
 
-describe("mytoken deploy", () => {
+const mintingAmount = 100n;
+const decimals = 18n;
+
+describe("My token", () => {
   let myTokenC: MyToken;
   let signers: HardhatEthersSigner[];
 
-  before("should deploy", async () => {
+  beforeEach("should deploy", async () => {
     signers = await hre.ethers.getSigners();
     myTokenC = await hre.ethers.deployContract("MyToken", [
       "MyToken",
       "MT",
       18,
+      100,
     ]);
   });
 
-  it("should return name", async () => {
-    expect(await myTokenC.name()).equal("MyToken");
+  //Basic test
+  describe("Basic state value check", () => {
+    it("should return name", async () => {
+      expect(await myTokenC.name()).equal("MyToken");
+    });
+
+    it("should return symbol", async () => {
+      expect(await myTokenC.symbol()).equal("MT");
+    });
+
+    it("should return decimals", async () => {
+      expect(await myTokenC.decimals()).equal(18);
+    });
+
+    it("should return 100 totalSupply", async () => {
+      expect(await myTokenC.totalSupply()).equal(
+        mintingAmount * 10n ** decimals,
+      );
+    });
+  });
+  //Mint test
+  describe("Mint", () => {
+    it("should return  1MT balance for singer 0", async () => {
+      const signer0 = signers[0];
+      expect(await myTokenC.balanceOf(signer0)).equal(
+        mintingAmount * 10n ** decimals,
+      );
+    });
   });
 
-  it("should return symbol", async () => {
-    expect(await myTokenC.symbol()).equal("MT");
-  });
+  //Transger test
+  describe("Transfer", () => {
+    it("should have 0.5MT", async () => {
+      const singer1 = signers[1];
+      await myTokenC.transfer(
+        hre.ethers.parseUnits("0.5", decimals),
+        singer1.address,
+      );
+      expect(await myTokenC.balanceOf(singer1)).equal(
+        hre.ethers.parseUnits("0.5"),
+      );
+    });
+    it("should be reverted with insufficient balance error", async () => {
+      const singer1 = signers[1];
 
-  it("should return decimals", async () => {
-    expect(await myTokenC.decimals()).equal(18);
-  });
+      await expect(
+        myTokenC.transfer(
+          hre.ethers.parseUnits((mintingAmount + 1n).toString(), decimals),
+          singer1.address,
+        ),
+      ).to.be.revertedWith("insufficient balance");
 
-  it("should return 0 totalSupply", async () => {
-    expect(await myTokenC.totalSupply()).equal(1n * 10n ** 18n);
-  });
-  it("should return  1MT balance for singer 0", async () => {
-    const signer0 = signers[0];
-    expect(await myTokenC.balanceOf(signer0)).equal(1n * 10n ** 18n);
+      //잘못된 예시 (await 위치 문제)
+      // expect(
+      //   await myTokenC.transfer(
+      //     hre.ethers.parseUnits("1.1", 18),
+      //     singer1.address,
+      //   ),
+      // ).to.be.revertedWith("insufficient balance");
+    });
   });
 });
