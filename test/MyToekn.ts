@@ -54,32 +54,36 @@ describe("My token", () => {
   //Transger test
   describe("Transfer", () => {
     it("should have 0.5MT", async () => {
-      const singer1 = signers[1];
-      await myTokenC.transfer(
-        hre.ethers.parseUnits("0.5", decimals),
-        singer1.address,
-      );
-      expect(await myTokenC.balanceOf(singer1)).equal(
-        hre.ethers.parseUnits("0.5"),
-      );
-    });
-    it("should be reverted with insufficient balance error", async () => {
-      const singer1 = signers[1];
-
+      const signer0 = signers[0];
+      const signer1 = signers[1];
+      //note : event 체크시 await을 expect앞에 붙일것
       await expect(
         myTokenC.transfer(
-          hre.ethers.parseUnits((mintingAmount + 1n).toString(), decimals),
-          singer1.address,
+          hre.ethers.parseUnits("0.5", decimals),
+          signer1.address,
         ),
-      ).to.be.revertedWith("insufficient balance");
+      )
+        .to.emit(myTokenC, "Transfer")
+        .withArgs(
+          signer0.address,
+          signer1.address,
+          hre.ethers.parseUnits("0.5", decimals),
+        );
 
-      //잘못된 예시 (await 위치 문제)
-      // expect(
-      //   await myTokenC.transfer(
-      //     hre.ethers.parseUnits("1.1", 18),
-      //     singer1.address,
-      //   ),
-      // ).to.be.revertedWith("insufficient balance");
+      expect(await myTokenC.balanceOf(signer1)).equal(
+        hre.ethers.parseUnits("0.5"),
+      );
+
+      it("should be reverted with insufficient balance error", async () => {
+        const singer1 = signers[1];
+
+        await expect(
+          myTokenC.transfer(
+            hre.ethers.parseUnits((mintingAmount + 1n).toString(), decimals),
+            singer1.address,
+          ),
+        ).to.be.revertedWith("insufficient balance");
+      });
     });
   });
 });
