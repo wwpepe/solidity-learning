@@ -112,7 +112,8 @@ describe("My token", () => {
           ),
       ).to.be.revertedWith("insufficient allowance");
     });
-    //TODO :
+    // HW2 : approve and transferfrom test code
+
     it("should allow signer1 to transfer tokens from signer0", async () => {
       const signer0 = signers[0];
       const signer1 = signers[1];
