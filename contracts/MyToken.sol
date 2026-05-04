@@ -40,6 +40,10 @@ contract MyToken {
         emit Transfer(from, to, amount);
     }
 
+    function mint(uint256 amount, address owner) external {
+        _mint(amount, owner);
+    }
+
     //토큰 발행
     function _mint(uint amount, address owner) internal {
         totalSupply += amount;
