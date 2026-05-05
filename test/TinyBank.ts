@@ -3,7 +3,6 @@ import { expect } from "chai";
 import { DECIMALS, MINTING_AMOUNT } from "./constant";
 import { MyToken, TinyBank } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import MyToken from "../ignition/modules/MyToken";
 
 describe("Tiny Bank", () => {
   let signers: HardhatEthersSigner[];
@@ -17,10 +16,18 @@ describe("Tiny Bank", () => {
       DECIMALS,
       MINTING_AMOUNT,
     ]);
+    // 매니저 4명인자로 넣음
     tinyBankC = await hre.ethers.deployContract("TinyBank", [
       await myTokenC.getAddress(),
+      [
+        signers[1].address,
+        signers[2].address,
+        signers[3].address,
+        signers[4].address,
+      ],
     ]);
-    await myTokenC.setManager(tinyBankC.getAddress());
+
+    await myTokenC.setManager(await tinyBankC.getAddress());
   });
 
   describe("Intialized state check", () => {
@@ -39,7 +46,7 @@ describe("Tiny Bank", () => {
       await myTokenC.approve(await tinyBankC.getAddress(), stakingAmount);
       await tinyBankC.stake(stakingAmount);
       expect(await tinyBankC.staked(signer0.address)).equal(stakingAmount);
-      expect(await myTokenC.balanceOf(tinyBankC)).equal(
+      expect(await myTokenC.balanceOf(tinyBankC.getAddress())).equal(
         await tinyBankC.totalStaked(),
       );
     });
@@ -75,12 +82,46 @@ describe("Tiny Bank", () => {
       );
     });
 
-    it("Should revert when changing rewardPerBlock by hacker", async () => {
-      const hacker = signers[3];
-      const rewardToChange = hre.ethers.parseUnits("10000", DECIMALS);
-      await expect(
-        tinyBankC.connect(hacker).setRewardPerBlock(rewardToChange),
-      ).to.be.revertedWith("You are not authorized to manage this contract");
+    // it("Should revert when changing rewardPerBlock by hacker", async () => {
+    //   const hacker = signers[3];
+    //   const rewardToChange = hre.ethers.parseUnits("10000", DECIMALS);
+    //   await expect(
+    //     tinyBankC.connect(hacker).setRewardPerBlock(rewardToChange),
+    //   ).to.be.revertedWith("You are not authorized to manage this contract");
+    // });
+  });
+
+  describe("MultiManagedAccess", () => {
+    //모든 매니저 통과
+    it("should allow setRewardPerBlock after all managers confirm", async () => {
+      const newReward = hre.ethers.parseUnits("5", DECIMALS);
+
+      await tinyBankC.connect(signers[1]).confirm();
+      await tinyBankC.connect(signers[2]).confirm();
+      await tinyBankC.connect(signers[3]).confirm();
+      await tinyBankC.connect(signers[4]).confirm();
+
+      await expect(tinyBankC.setRewardPerBlock(newReward)).to.not.be.reverted;
+    });
+    //매니저가 아닌 사람이 시도한 경우
+    it("should revert when non-manager calls confirm", async () => {
+      const hacker = signers[5];
+      await expect(tinyBankC.connect(hacker).confirm()).to.be.revertedWith(
+        "You are not a manager",
+      );
+    });
+
+    //모든 매니저가 동의하지 않은 경우
+    it("should revert when not all managers have confirmed", async () => {
+      const newReward = hre.ethers.parseUnits("5", DECIMALS);
+
+      await tinyBankC.connect(signers[1]).confirm();
+      await tinyBankC.connect(signers[2]).confirm();
+      await tinyBankC.connect(signers[3]).confirm();
+
+      await expect(tinyBankC.setRewardPerBlock(newReward)).to.be.revertedWith(
+        "Not all confirmed yet",
+      );
     });
   });
 });
