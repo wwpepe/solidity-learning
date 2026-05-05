@@ -3,6 +3,7 @@ import { expect } from "chai";
 import { DECIMALS, MINTING_AMOUNT } from "./constant";
 import { MyToken, TinyBank } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import MyToken from "../ignition/modules/MyToken";
 
 describe("Tiny Bank", () => {
   let signers: HardhatEthersSigner[];
@@ -19,6 +20,7 @@ describe("Tiny Bank", () => {
     tinyBankC = await hre.ethers.deployContract("TinyBank", [
       await myTokenC.getAddress(),
     ]);
+    await myTokenC.setManager(tinyBankC.getAddress());
   });
 
   describe("Intialized state check", () => {
