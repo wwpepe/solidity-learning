@@ -3,14 +3,15 @@ pragma solidity ^0.8.28;
 
 //abstract : 실제 배포용이 아닌 상속용
 abstract contract MultiManagedAccess {
-    uint constant NUM_MANAGER = 4;
+    uint constant MANAGER_NUMBERS = 5;
     address public owner;
-    address[NUM_MANAGER] public managers;
-    bool[NUM_MANAGER] public confirmed;
+    address[5] public managers;
 
-    constructor(address _owner, address[] memory _managers) {
+    bool[MANAGER_NUMBERS] public confirmed;
+
+    constructor(address _owner, address[5] memory _managers) {
         owner = _owner;
-        for (uint i = 0; i < NUM_MANAGER; i++) {
+        for (uint i = 0; i < MANAGER_NUMBERS; i++) {
             managers[i] = _managers[i];
         }
     }
@@ -20,14 +21,14 @@ abstract contract MultiManagedAccess {
         _;
     }
 
-    modifier onlyAllconfirmed() {
-        require(allConfirmed(), "Not all confirmed yet");
-        reset();
-        _;
+    function reset() internal {
+        for (uint i = 0; i < MANAGER_NUMBERS; i++) {
+            confirmed[i] = false;
+        }
     }
 
     function allConfirmed() internal view returns (bool) {
-        for (uint i = 0; i < NUM_MANAGER; i++) {
+        for (uint i = 0; i < MANAGER_NUMBERS; i++) {
             if (!confirmed[i]) {
                 return false;
             }
@@ -35,15 +36,15 @@ abstract contract MultiManagedAccess {
         return true;
     }
 
-    function reset() internal {
-        for (uint i = 0; i < NUM_MANAGER; i++) {
-            confirmed[i] = false;
-        }
+    modifier onlyAllconfirmed() {
+        require(allConfirmed(), "Not all confirmed yet");
+        reset();
+        _;
     }
 
     function confirm() external {
         bool found = false;
-        for (uint i = 0; i < NUM_MANAGER; i++) {
+        for (uint i = 0; i < MANAGER_NUMBERS; i++) {
             if (msg.sender == managers[i]) {
                 found = true;
                 confirmed[i] = true;
