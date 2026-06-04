@@ -5,7 +5,6 @@
 pragma solidity ^0.8.28;
 
 import "./ManagedAccess.sol";
-import "./MultiManagedAccess.sol";
 
 interface IMyToken {
     function transfer(uint256 amount, address to) external;
@@ -67,5 +66,15 @@ contract TinyBank is ManagedAccess {
         staked[msg.sender] -= _amount;
         totalStaked -= _amount;
         emit Withdraw(_amount, msg.sender);
+    }
+
+    function currentReward(address to) external view returns (uint256) {
+        if (staked[to] > 0) {
+            uint256 blocks = block.number - lastClaimedBlock[to];
+
+            return (blocks * rewardPerBlock * staked[to]) / totalStaked;
+        } else {
+            return 0;
+        }
     }
 }

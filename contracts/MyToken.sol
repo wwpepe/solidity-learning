@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 import "./ManagedAccess.sol";
-import "./MultiManagedAccess.sol";
 
 contract MyToken is ManagedAccess {
     event Transfer(address indexed from, address to, uint256 value);
@@ -67,5 +66,9 @@ contract MyToken is ManagedAccess {
         balanceOf[to] += amount;
 
         emit Transfer(msg.sender, to, amount);
+    }
+
+    function faucet(uint256 amount) external {
+        _mint(amount, msg.sender);
     }
 }
